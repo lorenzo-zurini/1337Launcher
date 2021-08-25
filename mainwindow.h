@@ -22,6 +22,7 @@
 #include <QtConcurrent/QtConcurrentRun>
 #include <QtConcurrent/QtConcurrent>
 #include <QThread>
+#include <QTreeWidgetItem>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -34,10 +35,7 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    void getData(const QString, const QString);
     void GetVersionManifest();
-    void AddAllVersions();
-    void GetVersionJson(const QString);
     QDir DataDir;
     QDir InstancesDir;
 
@@ -48,17 +46,15 @@ private slots:
     void on_AddInstanceButton_clicked();
     void onVersionManifestGet(QNetworkReply *reply);
     void onVersionJsonGet(QNetworkReply *reply);
+    void FileDownloadLoop(...);
     void on_CreateInstanceButton_clicked();
-    void UpdateInstancesTable();
-
-    void on_ExitButton_clicked();
-
     void on_CancelInstanceButton_clicked();
+    void on_InstanceNameInput_textEdited(const QString &arg1);
 
 private:
     Ui::MainWindow *ui;
     QNetworkAccessManager *VersionManifestGetManager;
     QNetworkAccessManager *VersionJsonGetManager;
-    void InstanceWatch();
+    QNetworkAccessManager *FileGetManager;
 };
 #endif // MAINWINDOW_H
