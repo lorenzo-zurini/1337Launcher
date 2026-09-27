@@ -113,12 +113,11 @@ QStringList GameLauncher::buildArguments()
     const QHash<QString, QString> vars{
         {"auth_player_name", m_account.username},
         {"auth_uuid", m_account.uuid},
-        {"auth_access_token", m_account.isMicrosoft() ? m_account.accessToken : QStringLiteral("0")},
-        {"auth_session", m_account.isMicrosoft() ? QString("token:%1:%2").arg(m_account.accessToken, m_account.uuid)
-                                                 : QStringLiteral("0")},
+        {"auth_access_token", "0"},
+        {"auth_session", "0"},
         {"auth_xuid", "0"},
         {"clientid", "0"},
-        {"user_type", m_account.isMicrosoft() ? QStringLiteral("msa") : QStringLiteral("legacy")},
+        {"user_type", "legacy"},
         {"user_properties", "{}"},
         {"version_name", id},
         {"version_type", m_version["type"].toString("release")},
@@ -174,10 +173,7 @@ bool GameLauncher::start(QString *error)
 
     const QStringList args = buildArguments();
 
-    QString shown = m_javaPath + ' ' + args.join(' ');
-    if (!m_account.accessToken.isEmpty())
-        shown.replace(m_account.accessToken, "<access token>");
-    emit output(tr("Launching: %1\n\n").arg(shown));
+    emit output(tr("Launching: %1 %2\n\n").arg(m_javaPath, args.join(' ')));
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     if (env.contains("APPIMAGE")) {

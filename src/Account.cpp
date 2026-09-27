@@ -8,42 +8,16 @@
 #include <QSaveFile>
 #include <QUuid>
 
-bool Account::needsRefresh() const
-{
-    if (!isMicrosoft())
-        return false;
-    return accessToken.isEmpty() || !accessTokenExpiry.isValid()
-        || accessTokenExpiry < QDateTime::currentDateTimeUtc().addSecs(10 * 60);
-}
-
-QString Account::displayName() const
-{
-    return isMicrosoft() ? username + QStringLiteral("  (Microsoft)") : username + QStringLiteral("  (Offline)");
-}
-
 QJsonObject Account::toJson() const
 {
-    QJsonObject o;
-    o["type"] = isMicrosoft() ? "msa" : "offline";
-    o["username"] = username;
-    o["uuid"] = uuid;
-    if (isMicrosoft()) {
-        o["accessToken"] = accessToken;
-        o["accessTokenExpiry"] = accessTokenExpiry.toString(Qt::ISODate);
-        o["msaRefreshToken"] = msaRefreshToken;
-    }
-    return o;
+    return QJsonObject{{"username", username}, {"uuid", uuid}};
 }
 
 Account Account::fromJson(const QJsonObject &o)
 {
     Account a;
-    a.type = o["type"].toString() == "msa" ? Microsoft : Offline;
     a.username = o["username"].toString();
     a.uuid = o["uuid"].toString();
-    a.accessToken = o["accessToken"].toString();
-    a.accessTokenExpiry = QDateTime::fromString(o["accessTokenExpiry"].toString(), Qt::ISODate);
-    a.msaRefreshToken = o["msaRefreshToken"].toString();
     return a;
 }
 
@@ -55,7 +29,6 @@ Account Account::offline(const QString &username)
     hash[8] = char((hash[8] & 0x3f) | 0x80);
 
     Account a;
-    a.type = Offline;
     a.username = username;
     a.uuid = QUuid::fromRfc4122(hash).toString(QUuid::Id128);
     return a;
@@ -70,7 +43,7 @@ AccountStore &AccountStore::instance()
 int AccountStore::addOrUpdate(const Account &account)
 {
     for (int i = 0; i < m_accounts.size(); ++i) {
-        if (m_accounts[i].type == account.type && m_accounts[i].uuid == account.uuid) {
+        if (m_accounts[i].uuid == account.uuid) {
             m_accounts[i] = account;
             save();
             return i;
@@ -96,8 +69,11 @@ void AccountStore::load()
     if (!file.open(QIODevice::ReadOnly))
         return;
     const QJsonArray arr = QJsonDocument::fromJson(file.readAll()).object()["accounts"].toArray();
-    for (const QJsonValue &v : arr)
-        m_accounts.append(Account::fromJson(v.toObject()));
+    for (const QJsonValue &v : arr) {
+        const Account a = Account::fromJson(v.toObject());
+        if (!a.username.isEmpty() && !a.uuid.isEmpty())
+            m_accounts.append(a);
+    }
 }
 
 bool AccountStore::save() const
@@ -113,9 +89,5 @@ bool AccountStore::save() const
     if (!file.open(QIODevice::WriteOnly))
         return false;
     file.write(QJsonDocument(root).toJson());
-    if (!file.commit())
-        return false;
-    // Tokens live in here; keep it private to the user.
-    QFile::setPermissions(file.fileName(), QFileDevice::ReadOwner | QFileDevice::WriteOwner);
-    return true;
+    return file.commit();
 }

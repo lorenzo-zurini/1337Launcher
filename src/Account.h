@@ -1,23 +1,13 @@
 #pragma once
 
-#include <QDateTime>
 #include <QJsonObject>
 #include <QList>
 #include <QString>
 
+// An offline player profile: just a name and the UUID derived from it.
 struct Account {
-    enum Type { Offline, Microsoft };
-
-    Type type = Offline;
     QString username;
-    QString uuid;                 // without dashes
-    QString accessToken;          // Minecraft access token
-    QDateTime accessTokenExpiry;
-    QString msaRefreshToken;      // Microsoft OAuth refresh token
-
-    bool isMicrosoft() const { return type == Microsoft; }
-    bool needsRefresh() const;
-    QString displayName() const;
+    QString uuid; // without dashes
 
     QJsonObject toJson() const;
     static Account fromJson(const QJsonObject &obj);

@@ -2,8 +2,6 @@
 #include "ConsoleWindow.h"
 #include "GameInstaller.h"
 #include "GameLauncher.h"
-#include "LoginDialog.h"
-#include "MicrosoftAuth.h"
 #include "NewInstanceDialog.h"
 #include "Paths.h"
 #include "SettingsDialog.h"
@@ -53,13 +51,11 @@ MainWindow::MainWindow(QWidget *parent)
     instanceLayout->addLayout(instanceButtons);
 
     // Accounts
-    auto *accountBox = new QGroupBox(tr("Account"), central);
+    auto *accountBox = new QGroupBox(tr("Player"), central);
     m_accounts = new QComboBox(accountBox);
-    m_addMsButton = new QPushButton(tr("Add Microsoft..."), accountBox);
-    m_addOfflineButton = new QPushButton(tr("Add offline..."), accountBox);
+    m_addOfflineButton = new QPushButton(tr("Add..."), accountBox);
     m_removeAccountButton = new QPushButton(tr("Remove"), accountBox);
     auto *accountButtons = new QHBoxLayout;
-    accountButtons->addWidget(m_addMsButton);
     accountButtons->addWidget(m_addOfflineButton);
     accountButtons->addWidget(m_removeAccountButton);
     auto *accountLayout = new QVBoxLayout(accountBox);
@@ -96,7 +92,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_newButton, &QPushButton::clicked, this, &MainWindow::newInstance);
     connect(m_deleteButton, &QPushButton::clicked, this, &MainWindow::deleteInstance);
     connect(m_folderButton, &QPushButton::clicked, this, &MainWindow::openInstanceFolder);
-    connect(m_addMsButton, &QPushButton::clicked, this, &MainWindow::addMicrosoftAccount);
     connect(m_addOfflineButton, &QPushButton::clicked, this, &MainWindow::addOfflineAccount);
     connect(m_removeAccountButton, &QPushButton::clicked, this, &MainWindow::removeAccount);
     connect(m_settingsButton, &QPushButton::clicked, this, &MainWindow::openSettings);
@@ -134,9 +129,9 @@ void MainWindow::reloadAccounts(int select)
     m_accounts->blockSignals(true);
     m_accounts->clear();
     for (const Account &a : accounts)
-        m_accounts->addItem(a.displayName());
+        m_accounts->addItem(a.username);
     if (accounts.isEmpty())
-        m_accounts->setPlaceholderText(tr("No accounts — add one below"));
+        m_accounts->setPlaceholderText(tr("No players — add one below"));
     m_accounts->setCurrentIndex(accounts.isEmpty() ? -1 : qBound(0, select, int(accounts.size()) - 1));
     m_accounts->blockSignals(false);
     if (m_accounts->currentIndex() >= 0)
@@ -153,7 +148,6 @@ void MainWindow::updateButtons()
     m_folderButton->setEnabled(hasInstance);
     m_instances->setEnabled(!m_busy);
     m_accounts->setEnabled(!m_busy);
-    m_addMsButton->setEnabled(!m_busy);
     m_addOfflineButton->setEnabled(!m_busy);
     m_removeAccountButton->setEnabled(!m_busy && hasAccount);
     m_settingsButton->setEnabled(!m_busy);
@@ -207,18 +201,10 @@ void MainWindow::openInstanceFolder()
     QDesktopServices::openUrl(QUrl::fromLocalFile(m_instanceList[row].gameDir()));
 }
 
-void MainWindow::addMicrosoftAccount()
-{
-    LoginDialog dialog(this);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    reloadAccounts(AccountStore::instance().addOrUpdate(dialog.account()));
-}
-
 void MainWindow::addOfflineAccount()
 {
     bool ok = false;
-    const QString name = QInputDialog::getText(this, tr("Offline account"),
+    const QString name = QInputDialog::getText(this, tr("Add account"),
                                                tr("Player name (3-16 characters: letters, numbers, _):"),
                                                QLineEdit::Normal, {}, &ok).trimmed();
     if (!ok)
@@ -250,11 +236,6 @@ void MainWindow::play()
 {
     if (m_busy) {
         // Acts as a cancel button while busy.
-        if (m_auth) {
-            m_auth->disconnect(this);
-            m_auth->cancel();
-            m_auth->deleteLater();
-        }
         if (m_installer) {
             m_installer->disconnect(this);
             m_installer->cancel();
@@ -272,25 +253,7 @@ void MainWindow::play()
     const Account account = AccountStore::instance().accounts().at(accountIndex);
     Paths::settings().setValue("ui/lastInstance", instance.name);
 
-    if (!account.needsRefresh())
-        return install(instance, account);
-
-    setBusy(true, tr("Refreshing login..."));
-    auto *auth = new MicrosoftAuth(this);
-    m_auth = auth;
-    connect(auth, &MicrosoftAuth::status, m_status, &QLabel::setText);
-    connect(auth, &MicrosoftAuth::succeeded, this, [this, auth, instance](const Account &refreshed) {
-        auth->deleteLater();
-        const int index = AccountStore::instance().addOrUpdate(refreshed);
-        reloadAccounts(index);
-        install(instance, refreshed);
-    });
-    connect(auth, &MicrosoftAuth::failed, this, [this, auth](const QString &error) {
-        auth->deleteLater();
-        setBusy(false, tr("Login failed."));
-        QMessageBox::warning(this, tr("Login failed"), error);
-    });
-    auth->refresh(account);
+    install(instance, account);
 }
 
 void MainWindow::install(const Instance &instance, const Account &account)

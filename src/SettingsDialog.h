@@ -17,5 +17,4 @@ private:
     QSpinBox *m_minMemory;
     QSpinBox *m_maxMemory;
     QLineEdit *m_extraArgs;
-    QLineEdit *m_clientId;
 };

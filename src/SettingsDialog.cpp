@@ -42,10 +42,6 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     m_extraArgs = new QLineEdit(s.value("java/extraArgs").toString(), this);
     m_extraArgs->setPlaceholderText("-XX:+UseG1GC ...");
 
-    m_clientId = new QLineEdit(s.value("auth/clientId").toString(), this);
-    const QString builtIn = QStringLiteral(LAUNCHER_MSA_CLIENT_ID);
-    m_clientId->setPlaceholderText(builtIn.isEmpty() ? tr("Not set") : tr("Built-in: %1").arg(builtIn));
-
     auto *dataDir = new QPushButton(tr("Open data folder"), this);
 
     auto *form = new QFormLayout;
@@ -53,7 +49,6 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     form->addRow(tr("Minimum memory:"), m_minMemory);
     form->addRow(tr("Maximum memory:"), m_maxMemory);
     form->addRow(tr("Extra JVM arguments:"), m_extraArgs);
-    form->addRow(tr("Microsoft client ID:"), m_clientId);
 
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     auto *layout = new QVBoxLayout(this);
@@ -87,7 +82,6 @@ void SettingsDialog::accept()
     s.setValue("java/minMemory", m_minMemory->value());
     s.setValue("java/maxMemory", m_maxMemory->value());
     s.setValue("java/extraArgs", m_extraArgs->text().trimmed());
-    s.setValue("auth/clientId", m_clientId->text().trimmed());
     s.sync();
     QDialog::accept();
 }

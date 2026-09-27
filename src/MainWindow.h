@@ -8,7 +8,6 @@
 
 class ConsoleWindow;
 class GameInstaller;
-class MicrosoftAuth;
 class QComboBox;
 class QLabel;
 class QListWidget;
@@ -32,7 +31,6 @@ private:
     void newInstance();
     void deleteInstance();
     void openInstanceFolder();
-    void addMicrosoftAccount();
     void addOfflineAccount();
     void removeAccount();
     void openSettings();
@@ -46,7 +44,6 @@ private:
     QPushButton *m_deleteButton;
     QPushButton *m_folderButton;
     QComboBox *m_accounts;
-    QPushButton *m_addMsButton;
     QPushButton *m_addOfflineButton;
     QPushButton *m_removeAccountButton;
     QProgressBar *m_progress;
@@ -57,6 +54,5 @@ private:
     QList<Instance> m_instanceList;
     bool m_busy = false;
     QPointer<GameInstaller> m_installer;
-    QPointer<MicrosoftAuth> m_auth;
     QList<QPointer<ConsoleWindow>> m_consoles;
 };
